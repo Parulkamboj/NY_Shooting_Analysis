@@ -1,0 +1,180 @@
+---
+title: "NY_Shooting Data Analysis"
+
+date: "11/8/2021"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+
+
+R Markdown
+
+This is an R Markdown document regarding New york shooting Incident.I have set my directory where .csv file is located and the i am reading csv file into NYPD_shooting_data. This data shows every shooting incident that occurred in NYC going back to 2006 through the end of the previous calendar year. Each record in csv file represents a shooting incident in NYC and includes every information about that particular event for example its location, time of occurrence etc. In addition, information related to suspect and victim demographics is also included. This data is very helpful and can be used by the anyone to explore the nature of shooting/criminal activity and to study about these events.
+
+Embed R code chunk is shown below:
+
+```{r setup, include=FALSE}
+options(knitr.duplicate.label = "allow")
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+Loading all the packages needed for this rmd
+
+```{r packages, include=FALSE}
+#load libraries
+library(tidyverse)
+library(lubridate)
+library(RColorBrewer)
+library(readr)
+```
+
+
+Importing Data
+Importing  .csv data file from the https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv  path 
+
+``` {r importing, echo=FALSE}
+
+NYPD_shooting_data <- read_csv("https://data.cityofnewyork.us/api/views/833y-fsy8/rows.csv?accessType=DOWNLOAD")
+
+```
+
+
+ Data Tidying
+
+``` {r tidying, echo=FALSE}
+# Remove all rows with "NA"
+NYPD_shooting_data <- na.omit(NYPD_shooting_data)
+
+# Need to discard the data that we do not need for data analysis like X_COORD_CD, Y_COORD_CD ,Longitude,Latitude,Lon_Lat,JURISDICTION_CODE
+NYPD_shooting_data <-select (NYPD_shooting_data,-X_COORD_CD,-Y_COORD_CD,-Longitude,-Latitude,-Lon_Lat,-JURISDICTION_CODE)
+
+
+
+
+```
+
+Summary of NY Shooting Data
+
+```{r NYPD_shooting_data_summary, echo=FALSE}
+summary(NYPD_shooting_data)
+
+```
+To change column from character type to factor type. 
+
+``` {r tidying2, echo=FALSE}
+
+NYPD_shooting_data <- NYPD_shooting_data %>% mutate(PERP_RACE2 = as_factor(PERP_RACE)) %>% select(-PERP_RACE)
+
+
+NYPD_shooting_data <- NYPD_shooting_data %>% mutate(Neighborhood = as_factor(BORO)) %>% 
+select(-BORO)
+
+NYPD_shooting_data <- NYPD_shooting_data %>% mutate(VIC_SEX2 = as_factor(VIC_SEX)) %>% 
+select(-VIC_SEX)
+
+NYPD_shooting_data <- NYPD_shooting_data %>% mutate(VIC_RACE2 = as_factor(VIC_RACE)) %>% 
+select(-VIC_RACE)
+
+NYPD_shooting_data <- NYPD_shooting_data %>% mutate(VIC_AGE_GROUP2 = as_factor(VIC_AGE_GROUP)) %>% 
+select(-VIC_AGE_GROUP)
+
+NYPD_shooting_data <- NYPD_shooting_data %>% mutate(PERP_SEX2 = as_factor(PERP_SEX)) %>% 
+select(-PERP_SEX)
+
+NYPD_shooting_data <- NYPD_shooting_data %>% mutate(PERP_AGE_GROUP2 = as_factor(PERP_AGE_GROUP)) %>% 
+select(-PERP_AGE_GROUP)
+
+
+NYPD_shooting_data <- NYPD_shooting_data %>% mutate(OCCUR_DATE = mdy(OCCUR_DATE))
+
+
+
+```
+ DATA ANALYSIS
+
+Number of shootings group by neighborhood so we can see how many shootings happened depending on Boro or neighborhood.
+ 
+``` {r shootings based on neighborhood }
+NYPD_shooting_data_neighborhood <- NYPD_shooting_data %>% 
+     group_by(Neighborhood) %>%
+     summarize(number_of_shootings=n()) %>%
+     arrange(desc(number_of_shootings))
+NYPD_shooting_data_neighborhood 
+```
+ Number of victims group by sex to check the rate of victims depending on sex.
+
+``` {r shootings group by sex }
+NYPD_shooting_data_sex <- NYPD_shooting_data %>% 
+     group_by(VIC_SEX2) %>%
+     summarize(number_of_shootings=n()) %>%
+     arrange(desc(number_of_shootings))
+NYPD_shooting_data_sex 
+```
+
+ Number of shootings group by Race to check victims depending on race.
+
+``` {r shootings group by race }
+NYPD_shooting_data_race <- NYPD_shooting_data %>% 
+     group_by(PERP_RACE2) %>%
+     summarize(number_of_shootings=n()) %>%
+     arrange(desc(number_of_shootings))
+NYPD_shooting_data_race 
+```
+ DATA VISUALIZATON
+
+```{r}
+#lets plot this to visualize it better. a barchart might be useful.
+#need to add more colors to color palette so we can see all year totals in each bar
+
+#define the number of colors you want
+nbcols <- 15
+mycolors <- colorRampPalette(brewer.pal(8, "Set2"))(nbcols)
+```
+ Number of shootings depending on neighborhood
+
+``` {r NYPD_shooting_data_neighborhood plot}
+ggplot(NYPD_shooting_data_neighborhood, aes(x=Neighborhood, y=number_of_shootings,
+fill =  factor(Neighborhood))) + 
+geom_col() + scale_fill_manual(values = mycolors) + ggtitle("SHOOTINGS IN NY DEPENDING ON NEIGHBORHOOD")
+
+``` 
+Looking at this graph we can conclude that Brooklyn has the most number of shootings and Staten Island has the least. 
+
+
+ Number of victims depending on Sex
+ 
+``` {r NYPD_shooting_data_sex plot}
+ggplot(NYPD_shooting_data_sex, aes(x=VIC_SEX2, y=number_of_shootings,fill =  factor(VIC_SEX2))) + 
+geom_col() + ggtitle("SHOOTINGS VICTIMS IN NY DEPENDING ON SEX") + scale_fill_manual(values = mycolors)
+```
+Looking at this graph we can conclude that most of the victims were male. 
+
+ Number of Shootings depending on Race
+ 
+``` {r NYPD_shooting_data_race plot}
+ggplot(NYPD_shooting_data_race, aes(x=PERP_RACE2, y=number_of_shootings,fill =  factor(PERP_RACE2))) + 
+geom_col() + ggtitle("SHOOTINGS IN NY DEPENDING ON RACE")+ scale_fill_manual(values = mycolors)
+
+```
+looking at this bar graph we can say that most victims were black.
+
+DATA MODELLING
+
+Creating a Model where the number of shooting incidents which involved race and how many were turned into murders in neighborhood(Boro).
+
+``` {r Modelling}
+shootings2 <- NYPD_shooting_data %>% group_by(Neighborhood,
+PERP_RACE2, STATISTICAL_MURDER_FLAG == "true") %>% 
+summarise(tot = n())
+glimpse(shootings2)
+lm_mod <- lm(tot ~ PERP_RACE2, data = shootings2)
+
+# Summary of the model
+summary(lm_mod)
+```
+Possible sources of Bias.
+I visualize data by checking victims depending on sex. According to my  analysis I saw that most of the victims are male. i might be bias on my analysis as I checked on sex. I wanted to check shootings depending upon race. Others can analyze depending on date or based on any other field.
+
